@@ -14,44 +14,70 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model utilisateurs {
-  userID        String   @id @default(auto()) @map("_id") @db.ObjectId
-  nom           String    
-  email         String   @unique 
-  motDePasse    String   
-  
-  emprunts      emprunts[]
-  notifications notifications[]
-}
+const prisma = require('../lib/prisma');   
 
-model emprunts {
-  empruntID     String    @id @default(auto()) @map("_id") @db.ObjectId
-  livreID       String   
-  userID        String   
-  dateEmprunt   DateTime 
-  dateRetour    DateTime? 
+const ArticleModel = {
+  create: async (data) => {
+    return prisma.article.create({
+      data: {
+        title:    data.title,
+        content:  data.content,
+        author:   data.author,
+        category: data.category,
+        tags:     data.tags || [],         
+      },
+    });
+  },
 
-  utilisateur    utilisateurs @relation(fields: [userID], references: [userID]) 
-  livre          livres       @relation(fields: [livreID], references: [livreID])
-}
+  getAll: async (filters = {}) => {
+    return prisma.article.findMany({
+      where: {
+        ...(filters.category && { category: filters.category }),
+        ...(filters.author   && { author:   filters.author }),
+        ...(filters.date     && {
+          date: { startsWith: filters.date }   
+        }),
+      },
+      orderBy: { date: 'desc' },
+    });
+  },
 
-model livre {
-  livreID       String    @id @default(auto()) @map("_id") @db.ObjectId
-  auteur        String   
-  titre         String   
-  description   String   
-  anneepublication  number
-  ISBN          String   
+  getById: async (id) => {
+    return prisma.article.findUnique({
+      where: { id: Number(id) },
+    });
+  },
 
-  emprunts      emprunts[]
-  notifications notifications[]
-}
+  update: async (id, data) => {
+    return prisma.article.update({
+      where: { id: Number(id) },
+      data: {
+        title:    data.title,
+        content:  data.content,
+        category: data.category,
+        tags:     data.tags,
+      },
+    });
+  },
 
-model notifications {
-  notificationID String    @id @default(auto()) @map("_id") @db.ObjectId
-  userID         String   
-  livreID        String   
-  message        String  
-  utilisateur    utilisateurs @relation(fields: [userID], references: [userID]) 
-  livre          livres       @relation(fields: [livreID], references: [livreID]) 
-}
+  delete: async (id) => {
+    return prisma.article.delete({
+      where: { id: Number(id) },
+    });
+  },
+
+  search: async (query) => {
+    const term = `%${query}%`;
+    return prisma.article.findMany({
+      where: {
+        OR: [
+          { title:   { contains: query, mode: 'insensitive' } },
+          { content: { contains: query, mode: 'insensitive' } },
+        ],
+      },
+      orderBy: { date: 'desc' },
+    });
+  },
+};
+
+module.exports = ArticleModel;

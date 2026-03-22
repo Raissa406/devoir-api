@@ -1,19 +1,20 @@
+import "dotenv/config";               // 1er import – très important
 
 import express from "express";
 import bodyParser from "body-parser";
-import morgan from "morgan"
-import users from "./routes/userRoutes";
-import "dotenv/config";
-
+import morgan from "morgan";
+import userRoutes from "./routes/userRoutes.js";   // .js si ESM
 
 const app = express();
-app.use("/enpoint",users)
 
+app.use(morgan("dev"));
 app.use(bodyParser.json());
-app.use(morgan("dev"))
-const port = process.env.PORT;
-app.listen(port, (err) => {
-  if (err) throw err;
-  console.log(`server running on port ${port}`);
-});
 
+app.use("/api/users", userRoutes);     // préfixe clair + pluriel
+
+const PORT = process.env.PORT || 5000; // fallback obligatoire
+
+app.listen(PORT, () => {
+  console.log(`Serveur démarré → http://localhost:${PORT}`);
+  console.log(`Documentation / debug : http://localhost:${PORT}/api/users`);
+});
